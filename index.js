@@ -10,9 +10,7 @@ const {
 } = require("discord.js");
 
 // ================== KEEP ALIVE SERVER ==================
-const http = require("http");
-
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
 http
   .createServer((req, res) => {
