@@ -10,7 +10,7 @@ const {
 } = require("discord.js");
 
 // ================== KEEP ALIVE SERVER ==================
-import http from "http";
+const http = require("http");
 
 const PORT = process.env.PORT || 10000;
 
