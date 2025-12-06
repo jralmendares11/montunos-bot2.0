@@ -10,7 +10,9 @@ const {
 } = require("discord.js");
 
 // ================== KEEP ALIVE SERVER ==================
-const PORT = process.env.PORT || 3000;
+import http from "http";
+
+const PORT = process.env.PORT || 10000;
 
 http
   .createServer((req, res) => {
@@ -20,14 +22,6 @@ http
   .listen(PORT, () => {
     console.log(`Servidor HTTP keep-alive activo en puerto ${PORT}`);
   });
-
-// ================== BOT CLIENT ==================
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
-  ]
-});
 
 // ================== ENV & CONSTANTES ==================
 const TOKEN = process.env.DISCORD_TOKEN;
