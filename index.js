@@ -9,8 +9,13 @@ const {
   SlashCommandBuilder
 } = require("discord.js");
 
+// ================== CLIENT DISCORD ==================
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
+});
+
 // ================== KEEP ALIVE SERVER ==================
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 http
   .createServer((req, res) => {
@@ -78,7 +83,6 @@ client.once("ready", async () => {
 
 // ================== LÓGICA DE COMANDOS ==================
 client.on("interactionCreate", async (interaction) => {
-
   if (!interaction.isChatInputCommand()) return;
 
   console.log("interactionCreate:", {
@@ -92,7 +96,7 @@ client.on("interactionCreate", async (interaction) => {
     try {
       await interaction.reply({
         content: "❌ Este comando solo se puede usar en el canal configurado para WL.",
-        flags: 64
+        flags: 64 // (equivalente a ephemeral: true)
       });
     } catch (e) {
       console.error("Error al responder por canal incorrecto:", e);
