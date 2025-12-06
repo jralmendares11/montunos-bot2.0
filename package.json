@@ -2,12 +2,13 @@
   "name": "montunos-wl-bot",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "commonjs",
+  "license": "MIT",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^15.0.0",
+    "discord.js": "14.16.3",
     "dotenv": "^16.3.1"
   }
 }
