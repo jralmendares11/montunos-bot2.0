@@ -36,8 +36,8 @@ const GUILD_ID = process.env.GUILD_ID;
 const ROLE_WHITELIST = process.env.ROLE_WHITELIST_ID;
 const ROLE_DENIED = process.env.ROLE_DENIED_ID;
 
-const PUBLIC_CHANNEL = process.env.PUBLIC_CHANNEL_ID; // Mensaje bonito + GIF
-const LOG_CHANNEL    = process.env.LOG_CHANNEL_ID;    // Canal donde usar comandos + logs
+const PUBLIC_CHANNEL = process.env.PUBLIC_CHANNEL_ID;
+const LOG_CHANNEL    = process.env.LOG_CHANNEL_ID;
 
 // ================== READY ==================
 client.once("ready", async () => {
@@ -86,7 +86,7 @@ client.once("ready", async () => {
 
 // ================== LÓGICA DE COMANDOS ==================
 client.on("interactionCreate", async (interaction) => {
-  // Solo slash commands
+
   if (!interaction.isChatInputCommand()) return;
 
   console.log("interactionCreate:", {
@@ -100,7 +100,7 @@ client.on("interactionCreate", async (interaction) => {
     try {
       await interaction.reply({
         content: "❌ Este comando solo se puede usar en el canal configurado para WL.",
-        ephemeral: true
+        flags: 64
       });
     } catch (e) {
       console.error("Error al responder por canal incorrecto:", e);
@@ -116,13 +116,13 @@ client.on("interactionCreate", async (interaction) => {
       console.error("❌ No se encontró el guild desde interaction.");
       await interaction.reply({
         content: "❌ Error interno: no se encontró el servidor.",
-        ephemeral: true
+        flags: 64
       }).catch(() => {});
       return;
     }
 
     // Respuesta diferida (para evitar "La aplicación no respondió")
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     const member = await guild.members.fetch(userId).catch(() => null);
 
@@ -140,14 +140,12 @@ client.on("interactionCreate", async (interaction) => {
         console.log("Ejecutando /wlpass para:", userId);
         await member.roles.add(ROLE_WHITELIST);
 
-        // LOG STAFF (mismo canal donde se ejecuta el comando)
+        // LOG STAFF (mismo canal donde se ejecuta)
         const logChannel = await guild.channels.fetch(LOG_CHANNEL).catch(() => null);
         if (logChannel) {
           logChannel.send(
             `🟢 <@${interaction.user.id}> aprobó una WL → <@${userId}>`
           ).catch(console.error);
-        } else {
-          console.error("No pude encontrar LOG_CHANNEL");
         }
 
         // CANAL PÚBLICO (mensaje bonito + GIF)
@@ -157,8 +155,6 @@ client.on("interactionCreate", async (interaction) => {
             content: ` ᴡʜɪᴛᴇʟɪsᴛ ᴀᴘʀᴏʙᴀᴅᴀ <@${userId}> — **ᴀsɪ́ sɪ́, Bienvenido Montuno. ғᴏʀᴍᴜʟᴀʀɪᴏ ʟɪᴍᴘɪᴏ. ᴀᴅᴇʟᴀɴᴛᴇ.**`,
             files: ["./assets/wlpass.gif"]
           }).catch(console.error);
-        } else {
-          console.error("No pude encontrar PUBLIC_CHANNEL");
         }
 
         await interaction.editReply({
@@ -169,7 +165,7 @@ client.on("interactionCreate", async (interaction) => {
         console.error("Error en /wlpass:", err);
         await interaction.editReply({
           content: "❌ No pude asignar WL."
-        }).catch(console.error);
+        });
       }
     }
 
@@ -179,25 +175,19 @@ client.on("interactionCreate", async (interaction) => {
         console.log("Ejecutando /wldenied para:", userId);
         await member.roles.add(ROLE_DENIED);
 
-        // LOG STAFF
         const logChannel = await guild.channels.fetch(LOG_CHANNEL).catch(() => null);
         if (logChannel) {
           logChannel.send(
             `🔴 <@${interaction.user.id}> denegó una WL → <@${userId}>`
           ).catch(console.error);
-        } else {
-          console.error("No pude encontrar LOG_CHANNEL");
         }
 
-        // CANAL PÚBLICO
         const publicChannel = await guild.channels.fetch(PUBLIC_CHANNEL).catch(() => null);
         if (publicChannel) {
           publicChannel.send({
             content: ` ᴡʜɪᴛᴇʟɪsᴛ ᴅᴇɴᴇɢᴀᴅᴀ <@${userId}> — **ʀᴇᴠɪsᴇ ʟᴀs ɴᴏʀᴍᴀs ᴀɴᴛᴇs ᴅᴇ ᴠᴏʟᴠᴇʀ.**`,
             files: ["./assets/wldenied.gif"]
           }).catch(console.error);
-        } else {
-          console.error("No pude encontrar PUBLIC_CHANNEL");
         }
 
         await interaction.editReply({
@@ -208,7 +198,7 @@ client.on("interactionCreate", async (interaction) => {
         console.error("Error en /wldenied:", err);
         await interaction.editReply({
           content: "❌ No pude asignar WL Denegada."
-        }).catch(console.error);
+        });
       }
     }
 
@@ -219,7 +209,7 @@ client.on("interactionCreate", async (interaction) => {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "❌ Ocurrió un error al procesar el comando.",
-          ephemeral: true
+          flags: 64
         });
       } else if (interaction.deferred) {
         await interaction.editReply({
