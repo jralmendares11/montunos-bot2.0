@@ -72,7 +72,6 @@ client.once("ready", async () => {
         option.setName("id")
           .setDescription("ID del usuario")
           .setRequired(true)
-      )
       ),
 
     new SlashCommandBuilder()
