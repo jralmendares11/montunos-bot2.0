@@ -6,7 +6,8 @@ const {
   GatewayIntentBits,
   REST,
   Routes,
-  SlashCommandBuilder
+  SlashCommandBuilder,
+  WebhookClient
 } = require("discord.js");
 
 // ================== CLIENT DISCORD ==================
@@ -33,8 +34,17 @@ const GUILD_ID = process.env.GUILD_ID;
 const ROLE_WHITELIST = process.env.ROLE_WHITELIST_ID;
 const ROLE_DENIED = process.env.ROLE_DENIED_ID;
 
+// ====== DELICTIVA (WD) ======
+const ROLE_WD_WHITELIST = process.env.ROLE_WD_WHITELIST_ID;
+const ROLE_WD_DENIED   = process.env.ROLE_WD_DENIED_ID;
+const WD_LOG_CHANNEL   = process.env.WD_LOG_CHANNEL_ID;
+const WD_WEBHOOK_URL   = process.env.WD_WEBHOOK_URL;
+
 const PUBLIC_CHANNEL = process.env.PUBLIC_CHANNEL_ID;
 const LOG_CHANNEL    = process.env.LOG_CHANNEL_ID;
+
+// Webhook para anuncios WD (para no cambiar nombre/foto del bot)
+const wdWebhook = WD_WEBHOOK_URL ? new WebhookClient({ url: WD_WEBHOOK_URL }) : null;
 
 // ================== READY ==================
 client.once("ready", async () => {
@@ -58,6 +68,25 @@ client.once("ready", async () => {
     new SlashCommandBuilder()
       .setName("wldenied")
       .setDescription("Denegar whitelist")
+      .addStringOption(option =>
+        option.setName("id")
+          .setDescription("ID del usuario")
+          .setRequired(true)
+      )
+      ),
+
+    new SlashCommandBuilder()
+      .setName("wdpass")
+      .setDescription("Aprobar whitelist delictiva")
+      .addStringOption(option =>
+        option.setName("id")
+          .setDescription("ID del usuario")
+          .setRequired(true)
+      ),
+
+    new SlashCommandBuilder()
+      .setName("wddenied")
+      .setDescription("Denegar whitelist delictiva")
       .addStringOption(option =>
         option.setName("id")
           .setDescription("ID del usuario")
@@ -91,12 +120,17 @@ client.on("interactionCreate", async (interaction) => {
     user: interaction.user?.id
   });
 
-  // 🔒 Solo permitir los comandos en el canal de LOGS
-  if (interaction.channelId !== LOG_CHANNEL) {
+  // 🔒 Solo permitir el comando en su canal de LOGS correspondiente
+  const expectedLogChannel =
+    (interaction.commandName === "wdpass" || interaction.commandName === "wddenied")
+      ? WD_LOG_CHANNEL
+      : LOG_CHANNEL;
+
+  if (expectedLogChannel && interaction.channelId !== expectedLogChannel) {
     try {
       await interaction.reply({
-        content: "❌ Este comando solo se puede usar en el canal configurado para WL.",
-        flags: 64 // (equivalente a ephemeral: true)
+        content: "❌ Este comando solo se puede usar en el canal de logs configurado.",
+        flags: 64
       });
     } catch (e) {
       console.error("Error al responder por canal incorrecto:", e);
@@ -106,7 +140,17 @@ client.on("interactionCreate", async (interaction) => {
 
   try {
     const guild = interaction.guild || client.guilds.cache.get(GUILD_ID);
-    const userId = interaction.options.getString("id");
+    const userIdRaw = interaction.options.getString("id");
+    const userId = (userIdRaw || "").trim();
+
+    // ✅ Validación rápida (evita pegar texto largo / cosas raras)
+    if (!/^\d{17,20}$/.test(userId)) {
+      await interaction.reply({
+        content: "❌ ID inválido. Pegá el Discord ID (solo números).",
+        flags: 64
+      }).catch(() => {});
+      return;
+    }
 
     if (!guild) {
       console.error("❌ No se encontró el guild desde interaction.");
@@ -195,6 +239,71 @@ client.on("interactionCreate", async (interaction) => {
         await interaction.editReply({
           content: "❌ No pude asignar WL Denegada."
         });
+      }
+    }
+
+
+    // ========= WD WL APROBADA =========
+    else if (interaction.commandName === "wdpass") {
+      try {
+        console.log("Ejecutando /wdpass para:", userId);
+        await member.roles.add(ROLE_WD_WHITELIST);
+
+        // LOG STAFF WD (mismo canal donde se ejecuta)
+        const logChannel = expectedLogChannel
+          ? await guild.channels.fetch(expectedLogChannel).catch(() => null)
+          : null;
+        if (logChannel) {
+          logChannel.send(
+            `🟢 <@${interaction.user.id}> aprobó **WL Delictiva** → <@${userId}>`
+          ).catch(console.error);
+        }
+
+        // ANUNCIO POR WEBHOOK (sin cambiar nombre/foto del bot)
+        if (wdWebhook) {
+          wdWebhook.send({
+            content: `✅ **ʜᴀ sɪᴅᴏ ᴀᴘʀᴏʙᴀᴅᴏ ᴘᴀʀᴀ ᴇʟ ʀᴏʟ ᴅᴇʟɪᴄᴛɪᴠᴏ** <@${userId}> — **ᴇʟ ʀᴏʟ ʜᴀʙʟᴀʀᴀ ᴘᴏʀ ᴠᴏs, ɴᴏ ʟᴏs ᴅɪsᴘᴀʀᴏs.**`,
+            files: [{ attachment: "./assets/wdpass.gif", name: "wdpass.gif" }]
+          }).catch(console.error);
+        } else {
+          console.log("WD_WEBHOOK_URL no configurado, no se envió anuncio WD.");
+        }
+
+        await interaction.editReply({ content: "✔️ WL Delictiva aprobada." });
+      } catch (err) {
+        console.error("Error en /wdpass:", err);
+        await interaction.editReply({ content: "❌ No pude asignar WL Delictiva." });
+      }
+    }
+
+    // ========= WD WL DENEGADA =========
+    else if (interaction.commandName === "wddenied") {
+      try {
+        console.log("Ejecutando /wddenied para:", userId);
+        await member.roles.add(ROLE_WD_DENIED);
+
+        const logChannel = expectedLogChannel
+          ? await guild.channels.fetch(expectedLogChannel).catch(() => null)
+          : null;
+        if (logChannel) {
+          logChannel.send(
+            `🔴 <@${interaction.user.id}> denegó **WL Delictiva** → <@${userId}>`
+          ).catch(console.error);
+        }
+
+        if (wdWebhook) {
+          wdWebhook.send({
+            content: `❌ **ᴀᴘʟɪᴄᴀᴄɪᴏ́ɴ ᴅᴇʟɪᴄᴛɪᴠᴀ ᴅᴇɴᴇɢᴀᴅᴀ** <@${userId}> — **ᴘᴜᴇᴅᴇs ᴠᴏʟᴠᴇʀ ᴀ ɪɴᴛᴇɴᴛᴀʀʟᴏ ᴍᴀ́s ᴀᴅᴇʟᴀɴᴛᴇ.**`,
+            files: [{ attachment: "./assets/wddenied.gif", name: "wddenied.gif" }]
+          }).catch(console.error);
+        } else {
+          console.log("WD_WEBHOOK_URL no configurado, no se envió anuncio WD.");
+        }
+
+        await interaction.editReply({ content: "❌ WL Delictiva denegada." });
+      } catch (err) {
+        console.error("Error en /wddenied:", err);
+        await interaction.editReply({ content: "❌ No pude asignar WL Delictiva (denegada)." });
       }
     }
 
