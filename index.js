@@ -1,5 +1,14 @@
 // ================== CONFIG & IMPORTS ==================
 require("dotenv").config();
+
+process.on("unhandledRejection", (e) => {
+  console.error("UNHANDLED REJECTION:", e);
+});
+
+process.on("uncaughtException", (e) => {
+  console.error("UNCAUGHT EXCEPTION:", e);
+});
+
 const http = require("http");
 const {
   Client,
