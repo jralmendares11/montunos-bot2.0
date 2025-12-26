@@ -129,7 +129,7 @@ client.on("interactionCreate", async (interaction) => {
     try {
       await interaction.reply({
         content: "❌ Este comando solo se puede usar en el canal de logs configurado.",
-        flags: 64
+        ephemeral: true
       });
     } catch (e) {
       console.error("Error al responder por canal incorrecto:", e);
@@ -146,7 +146,7 @@ client.on("interactionCreate", async (interaction) => {
     if (!/^\d{17,20}$/.test(userId)) {
       await interaction.reply({
         content: "❌ ID inválido. Pegá el Discord ID (solo números).",
-        flags: 64
+        ephemeral: true
       }).catch(() => {});
       return;
     }
@@ -155,13 +155,13 @@ client.on("interactionCreate", async (interaction) => {
       console.error("❌ No se encontró el guild desde interaction.");
       await interaction.reply({
         content: "❌ Error interno: no se encontró el servidor.",
-        flags: 64
+        ephemeral: true
       }).catch(() => {});
       return;
     }
 
-    // Respuesta diferida (para evitar "La aplicación no respondió")
-    await interaction.deferReply({ flags: 64 });
+    // ✅ Respuesta diferida (evita "La aplicación no respondió")
+    await interaction.deferReply({ ephemeral: true });
 
     const member = await guild.members.fetch(userId).catch(() => null);
 
@@ -241,7 +241,6 @@ client.on("interactionCreate", async (interaction) => {
       }
     }
 
-
     // ========= WD WL APROBADA =========
     else if (interaction.commandName === "wdpass") {
       try {
@@ -313,7 +312,7 @@ client.on("interactionCreate", async (interaction) => {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: "❌ Ocurrió un error al procesar el comando.",
-          flags: 64
+          ephemeral: true
         });
       } else if (interaction.deferred) {
         await interaction.editReply({
